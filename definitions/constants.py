@@ -1,0 +1,4 @@
+from ctypes import *
+
+DEBUG_PROCESS = 0x00000001
+CREATE_NEW_CONSOLE = 0x00000010
