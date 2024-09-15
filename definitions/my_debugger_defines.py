@@ -46,6 +46,8 @@ TH32CS_SNAPMODULE   = 0x00000008
 TH32CS_INHERIT      = 0x80000000
 TH32CS_SNAPALL      = (TH32CS_SNAPHEAPLIST | TH32CS_SNAPPROCESS | TH32CS_SNAPTHREAD | TH32CS_SNAPMODULE)
 THREAD_ALL_ACCESS   = 0x001F03FF
+THREAD_GET_CONTEXT = 0x0008
+THREAD_SUSPEND_RESUME = 0x0002
 
 # Context flags for GetThreadContext()
 CONTEXT_FULL                   = 0x00010007
@@ -268,3 +270,46 @@ class MEMORY_BASIC_INFORMATION(Structure):
         ("Type", DWORD),
 ]
     
+WOW64_MAXIMUM_SUPPORTED_EXTENSION = 512
+
+class WOW64_FLOATING_SAVE_AREA(Structure):
+    _fields_ = [
+        ("ControlWord", DWORD),
+        ("StatusWord", DWORD),
+        ("TagWord", DWORD),
+        ("ErrorOffset", DWORD),
+        ("ErrorSelector", DWORD),
+        ("DataOffset", DWORD),
+        ("DataSelector", DWORD),
+        ("RegisterArea", BYTE * 80),
+        ("Cr0NpxState", DWORD),
+    ]
+
+class WOW64_CONTEXT(Structure):
+    _fields_ = [
+        ("ContextFlags", DWORD),
+        ("Dr0", DWORD),
+        ("Dr1", DWORD),
+        ("Dr2", DWORD),
+        ("Dr3", DWORD),
+        ("Dr6", DWORD),
+        ("Dr7", DWORD),
+        ("FloatSave", WOW64_FLOATING_SAVE_AREA),
+        ("SegGs", DWORD),
+        ("SegFs", DWORD),
+        ("SegEs", DWORD),
+        ("SegDs", DWORD),
+        ("Edi", DWORD),
+        ("Esi", DWORD),
+        ("Ebx", DWORD),
+        ("Edx", DWORD),
+        ("Ecx", DWORD),
+        ("Eax", DWORD),
+        ("Ebp", DWORD),
+        ("Eip", DWORD),
+        ("SegCs", DWORD),
+        ("EFlags", DWORD),
+        ("Esp", DWORD),
+        ("SegSs", DWORD),
+        ("ExtendedRegisters", BYTE * WOW64_MAXIMUM_SUPPORTED_EXTENSION),
+    ]

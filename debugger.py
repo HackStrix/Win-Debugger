@@ -115,7 +115,7 @@ class Debugger():
         
     def open_thread(self, thread_id):
 
-        h_thread = kernel32.OpenThread(THREAD_ALL_ACCESS, None,
+        h_thread = kernel32.OpenThread(THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, None,
             thread_id)
 
         if h_thread is not None:
@@ -150,21 +150,28 @@ class Debugger():
 
     def get_thread_context (self, thread_id=None,h_thread=None):
 
-        context = CONTEXT()
+        context = WOW64_CONTEXT()
         context.ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS
 
         # Obtain a handle to the thread
         if h_thread is None:
-            self.h_thread = self.open_thread(thread_id)
-        if self.h_thread and kernel32.SuspendThread(self.h_thread) != -1:
-            if kernel32.GetThreadContext(self.h_thread, byref(context)):
-                print(context.Eip)
-                kernel32.ResumeThread(self.h_thread)
+            h_thread = self.open_thread(thread_id)
+            print(h_thread)
+        if h_thread and kernel32.Wow64SuspendThread(h_thread) != -1:
+            # Get the context
+            context_status = kernel32.Wow64GetThreadContext(h_thread, byref(context))
+            print(context_status)
+            if context_status != 0:
+                # print(context.Eip)
+                kernel32.ResumeThread(h_thread)
                 return context
             else:
-                kernel32.ResumeThread(self.h_thread)
+                print("[*] GetThreadContext failed.")
+                kernel32.ResumeThread(h_thread)
+                print(kernel32.GetLastError())
                 return False
         else:
+            print("[*] Could not obtain a valid thread handle. or could not suspend the thread")
             return False
        
 if __name__ == '__main__':
@@ -197,5 +204,5 @@ if __name__ == '__main__':
             print("[**] ECX: 0x%08x" % thread_context.Ecx)
             print("[**] EDX: 0x%08x" % thread_context.Edx)
             print("[*] END DUMP")
-
+            
 debugger.detach()
