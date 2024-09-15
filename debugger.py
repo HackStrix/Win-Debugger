@@ -10,7 +10,9 @@ kernel32 = windll.kernel32
 
 class Debugger():
     def __init__(self):
-        pass
+        self.pid = None
+        self.debugger_active = False
+        self.h_thread = None
 
     def load(self,path_to_exe):
         if not os.path.exists(path_to_exe):
@@ -111,7 +113,7 @@ class Debugger():
             return False
 
         
-    def open_thread (self, thread_id):
+    def open_thread(self, thread_id):
 
         h_thread = kernel32.OpenThread(THREAD_ALL_ACCESS, None,
             thread_id)
@@ -138,8 +140,8 @@ class Debugger():
                 while success:
                     if thread_entry.th32OwnerProcessID == self.pid:
                         thread_list.append(thread_entry.th32ThreadID)
-                        success = kernel32.Thread32Next(snapshot,
-                        byref(thread_entry))
+                    success = kernel32.Thread32Next(snapshot,
+                    byref(thread_entry))
 
                 kernel32.CloseHandle(snapshot)
                 return thread_list
@@ -154,10 +156,14 @@ class Debugger():
         # Obtain a handle to the thread
         if h_thread is None:
             self.h_thread = self.open_thread(thread_id)
-
-        if kernel32.GetThreadContext(self.h_thread, byref(context)):
-    
-            return context
+        if self.h_thread and kernel32.SuspendThread(self.h_thread) != -1:
+            if kernel32.GetThreadContext(self.h_thread, byref(context)):
+                print(context.Eip)
+                kernel32.ResumeThread(self.h_thread)
+                return context
+            else:
+                kernel32.ResumeThread(self.h_thread)
+                return False
         else:
             return False
        
@@ -172,5 +178,24 @@ if __name__ == '__main__':
 
     pid = input("Enter the PID of the process to attach to: ")
     debugger.attach(int(pid))
-    debugger.run()
-    debugger.detach()
+    # debugger.run()
+    list1 = debugger.enumerate_threads()
+    print(list1)
+# For each thread in the list we want to
+# grab the value of each of the registers
+    for thread in list1:
+
+        thread_context = debugger.get_thread_context(thread)
+        if thread_context:
+            # Now let's output the contents of some of the registers
+            print("[*] Dumping registers for thread ID: 0x%08x" % thread)
+            print("[**] EIP: 0x%08x" % thread_context.Eip)
+            print("[**] ESP: 0x%08x" % thread_context.Esp)
+            print("[**] EBP: 0x%08x" % thread_context.Ebp)
+            print("[**] EAX: 0x%08x" % thread_context.Eax)
+            print("[**] EBX: 0x%08x" % thread_context.Ebx)
+            print("[**] ECX: 0x%08x" % thread_context.Ecx)
+            print("[**] EDX: 0x%08x" % thread_context.Edx)
+            print("[*] END DUMP")
+
+debugger.detach()
